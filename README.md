@@ -11,6 +11,7 @@ Uses GCC for Linux and MinGW for Windows.
 - Common button / axis names
 - Expose joypad vendor / model
 - Expose joypad name
+- Pump events and respond to changes
 
 ### Linux
 
