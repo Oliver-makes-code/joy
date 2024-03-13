@@ -1,23 +1,23 @@
-rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
+rwildcard = $(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
 CC = gcc
 
 ifeq ($(OS),Windows_NT)
 OUT_NAME = joy.dll
 RM = del
-FLAGS = "-DWINDOWS="
+PLATFORM_BIN = windows.a
+EXTRA_FLAGS = "-DWINDOWS=" -Wl,--subsystem,windows
 else
 OUT_NAME = libjoy.so
 RM = rm
+PLATFORM_BIN = linux.a
+EXTRA_FLAGS =
 endif
 
-ifeq ($(OS),Windows_NT)
-all: common.a windows.a
-	$(CC) -shared common.a windows.a -o $(OUT_NAME) $(FLAGS)  -Wl,--subsystem,windows
-else
-all: common.a linux.a
-	$(CC) -shared common.a linux.a -o $(OUT_NAME) $(FLAGS)
-endif
+BUILD_COMMAND = -shared -Wl,--whole-archive common.a $(PLATFORM_BIN) -Wl,--no-whole-archive -o $(OUT_NAME)
+
+all: common.a $(PLATFORM_BIN)
+	$(CC) $(BUILD_COMMAND) $(EXTRA_FLAGS)
 
 common.a: $(subst .c,.o,$(call rwildcard,common,*.c))
 	ar rcs common.a $(call rwildcard,common,*.o)
