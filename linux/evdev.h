@@ -1,5 +1,6 @@
 #pragma once
-#include "../common/joy.h"
+
+#include "../common/defines.h"
 
 CPP_GUARD_S
 

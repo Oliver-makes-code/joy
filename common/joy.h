@@ -1,20 +1,22 @@
 #pragma once
 
-#include <stddef.h>
 
 #include "defines.h"
-#include "types.h"
 
 CPP_GUARD_S
 
-// Holds a failable result.
-// ok is always 0.
-typedef STR_RESULT(size_t) failable_t;
+#include <stddef.h>
 
-// Initialized the library.
+#include "types.h"
+
+// Initializes the library.
 PUB failable_t CALL joy_Init();
 
 // Pumps events.
 PUB failable_t CALL joy_PumpEvents();
+
+// Gets the info of a joypad.
+// Returns ok=false if not connected.
+PUB option_joypadinfo_t CALL joy_GetJoypadInfo(u32 id);
 
 CPP_GUARD_E

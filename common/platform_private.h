@@ -1,8 +1,10 @@
 #pragma once
 
-#include "joy.h"
+#include "defines.h"
 
 CPP_GUARD_S
+
+#include "joy.h"
 
 void joy_platform_EnumerateDevices();
 

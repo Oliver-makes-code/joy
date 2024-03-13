@@ -1,5 +1,6 @@
-#include "jsdev.h"
 #include <stdbool.h>
+
+#include "jsdev.h"
 
 bool joy_linux_jsdev_IsGamepad(const char *path) {
     // Not implemented.
