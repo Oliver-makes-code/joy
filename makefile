@@ -5,35 +5,23 @@ CC = gcc
 ifeq ($(OS),Windows_NT)
 OUT_NAME = joy.dll
 RM = del
-PLATFORM_BIN = windows.a
+PLATFORM_FILES = $(call rwildcard,windows,*.c)
 EXTRA_FLAGS = "-DWINDOWS=" -Wl,--subsystem,windows
 else
 OUT_NAME = libjoy.so
 RM = rm
-PLATFORM_BIN = linux.a
+PLATFORM_FILES = $(call rwildcard,linux,*.c)
 EXTRA_FLAGS =
 endif
 
-BUILD_COMMAND = -shared -Wl,--whole-archive common.a $(PLATFORM_BIN) -Wl,--no-whole-archive -o $(OUT_NAME)
+COMMON_FILES = $(call rwildcard,common,*.c)
 
-all: common.a $(PLATFORM_BIN)
-	$(CC) $(BUILD_COMMAND) $(EXTRA_FLAGS)
+BUILD_COMMAND = 
 
-common.a: $(subst .c,.o,$(call rwildcard,common,*.c))
-	ar rcs common.a $(call rwildcard,common,*.o)
+all: $(OUT_NAME)
 
-linux.a: $(subst .c,.o,$(call rwildcard,linux,*.c))
-	ar rcs linux.a $(call rwildcard,linux,*.o)
-
-windows.a: $(subst .c,.o,$(call rwildcard,windows,*.c))
-	ar rcs windows.a $(call rwildcard,windows,*.o)
-
-*.o:
-	$(CC) -c $(subst .o,.c,$@) -o $@ $(FLAGS)
+$(OUT_NAME):
+	$(CC) -shared $(COMMON_FILES) $(PLATFORM_FILES) -o $(OUT_NAME) -fPIC $(EXTRA_FLAGS)
 
 clean:
-	-$(RM) common.a
-	-$(RM) windows.a
-	-$(RM) linux.a
 	-$(RM) $(OUT_NAME)
-	-$(RM)  $(call rwildcard,.,*.o)
