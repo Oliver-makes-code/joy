@@ -36,8 +36,19 @@ typedef int8_t i8;
 // ok is always 0.
 typedef STR_RESULT(usize) failable_t;
 
+typedef OPTION(f32) option_f32;
+typedef OPTION(u16) option_u16;
+typedef OPTION(bool) option_bool;
+
+// Holds info about a joypad.
+// TODO: sensors? rumble?
 typedef struct {
+    // The ID of the joypad.
     u32 id;
+    // The number of buttons on the joypad
+    u16 button_count;
+    // The number of axes on the joypad
+    u16 axis_count;
 } joypadinfo_t;
 
 typedef OPTION(joypadinfo_t) option_joypadinfo_t;
