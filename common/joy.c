@@ -1,12 +1,10 @@
 #include "joy.h"
 #include "types.h"
 
-int CALL add(int a, int b) {
-    return a + b;
+failable_t CALL joy_Init() {
+    return RESULT_OK(failable_t, 0);
 }
 
-typedef STR_RESULT(int) test_t;
-
-test_t test() {
-    return RESULT_ERR(test_t, "nya :3");
+failable_t CALL joy_PumpEvents() {
+    return RESULT_OK(failable_t, 0);
 }

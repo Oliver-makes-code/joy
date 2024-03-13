@@ -1,3 +1,5 @@
+rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
+
 CC = gcc
 
 ifeq ($(OS),Windows_NT)
@@ -10,24 +12,28 @@ RM = rm
 endif
 
 ifeq ($(OS),Windows_NT)
-all: common.o windows.o
-	$(CC) -shared common.o windows.o -o $(OUT_NAME) $(FLAGS)  -Wl,--subsystem,windows
+all: common.a windows.a
+	$(CC) -shared common.a windows.a -o $(OUT_NAME) $(FLAGS)  -Wl,--subsystem,windows
 else
-all: common.o linux.o
-	$(CC) -shared common.o linux.o -o $(OUT_NAME) $(FLAGS)
+all: common.a linux.a
+	$(CC) -shared common.a linux.a -o $(OUT_NAME) $(FLAGS)
 endif
 
-common.o:
-	$(CC) -c common/*.c -o common.o $(FLAGS)
+common.a: $(subst .c,.o,$(call rwildcard,common,*.c))
+	ar rcs common.a $(call rwildcard,common,*.o)
 
-linux.o:
-	$(CC) -c linux/*.c -o linux.o $(FLAGS)
+linux.a: $(subst .c,.o,$(call rwildcard,linux,*.c))
+	ar rcs linux.a $(call rwildcard,linux,*.o)
 
-windows.o:
-	$(CC) -c windows/*.c -o windows.o $(FLAGS)
+windows.a: $(subst .c,.o,$(call rwildcard,windows,*.c))
+	ar rcs windows.a $(call rwildcard,windows,*.o)
+
+*.o:
+	$(CC) -c $(subst .o,.c,$@) -o $@ $(FLAGS)
 
 clean:
-	-$(RM) common.o
-	-$(RM) windows.o
-	-$(RM) linux.o
+	-$(RM) common.a
+	-$(RM) windows.a
+	-$(RM) linux.a
 	-$(RM) $(OUT_NAME)
+	-$(RM)  $(call rwildcard,.,*.o)
