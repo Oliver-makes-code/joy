@@ -2,7 +2,7 @@
 #include "evdev.h"
 #include "jsdev.h"
 
-void platform_EnumerateDevices() {
-    linux_evdev_EnumerateDevices();
-    linux_jsdev_EnumerateDevices();
+void joy_platform_EnumerateDevices() {
+    joy_linux_evdev_EnumerateDevices();
+    joy_linux_jsdev_EnumerateDevices();
 }

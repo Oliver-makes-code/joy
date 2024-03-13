@@ -8,7 +8,7 @@
 
 #include "evdev.h"
 
-bool linux_evdev_IsGamepad(const char *path) {
+bool joy_linux_evdev_IsGamepad(const char *path) {
     // Open the path
     FILE *file = fopen(path, "r");
 
@@ -40,7 +40,7 @@ bool linux_evdev_IsGamepad(const char *path) {
 }
 
 // TODO: Open files that are a gamepad, store them somewhere for future use
-void linux_evdev_EnumerateDevices() {
+void joy_linux_evdev_EnumerateDevices() {
     const char *lin_SearchPath = "/dev/input";
 
     DIR *d;
@@ -70,7 +70,7 @@ void linux_evdev_EnumerateDevices() {
         // Concat the paths
         sprintf(filename, "%s/%s", lin_SearchPath, dir->d_name);
 
-        if (!linux_evdev_IsGamepad(filename))
+        if (!joy_linux_evdev_IsGamepad(filename))
             goto freecontinue;
 
         printf("%s\n", dir->d_name);
