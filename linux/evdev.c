@@ -1,4 +1,4 @@
-#include <dirent.h> 
+#include <dirent.h>
 #include <stdio.h> 
 #include <stdbool.h>
 #include <stdlib.h>
@@ -7,39 +7,54 @@
 #include <linux/input.h>
 
 #include "evdev.h"
+#include "joy_linux.h"
 
-bool joy_linux_evdev_IsGamepad(const char *path) {
-    // Open the path
-    FILE *file = fopen(path, "r");
+joypadlist_t *joy_linux_evdev_joypadlist = 0;
 
-    if (!file)
-        return false; // Past this point we have a file we need to clean up. Returning false should goto retfalse
-    
+bool joy_linux_evdev_HasJoypad(u32 id) {
+    joypadlist_t *current = joy_linux_evdev_joypadlist;
+
+    // Iterate through the list and check if the ID matches.
+    // It might make more sense to use a hashset for this.
+    // Currently it will cause an infinite loop if the list loops in on itself.
+    while (current) {
+        if (current->id == id)
+            return true;
+        current = current->next;
+    }
+    return false;
+}
+
+void joy_linux_evdev_AddJoypad(u32 id, FILE *file) {
+    // Create a new node and add it to the list
+    joypadlist_t *node = malloc(sizeof(joypadlist_t));
+    node->id = id;
+    node->file = file;
+    node->next = joy_linux_evdev_joypadlist;
+    joy_linux_evdev_joypadlist = node;
+}
+
+bool joy_linux_evdev_IsJoypad(FILE *file) {
+    // Get the file descriptor
     int fd = fileno(file);
 
     // We should have a descriptor, but it's always good to check.
     if (fd == -1)
-        goto retfalse;
+        return false;
 
     // Grab the input
     struct input_id id;
     if (ioctl(fd, EVIOCGID, &id) == -1)
-        goto retfalse;
+        return false;
 
     if (id.bustype != BUS_USB && id.bustype != BUS_BLUETOOTH)
-        goto retfalse;
+        return false;
 
     // We can probably assume it's a gamepad here. Might wanna do some further testing.
 
-    fclose(file);
     return true;
-
-  retfalse:
-    fclose(file);
-    return false;
 }
 
-// TODO: Open files that are a gamepad, store them somewhere for future use
 void joy_linux_evdev_EnumerateDevices() {
     const char *lin_SearchPath = "/dev/input";
 
@@ -52,34 +67,50 @@ void joy_linux_evdev_EnumerateDevices() {
         return;
 
     while ((dir = readdir(d))) {
+        char *d_name = dir->d_name;
         // Ignore parent and current dirs
-        if (!strcmp(dir->d_name, "."))
+        if (!strcmp(d_name, "."))
             continue;
-        if (!strcmp(dir->d_name, ".."))
+        if (!strcmp(d_name, ".."))
             continue;
-        if (strncmp(dir->d_name, "event", 5))
+        if (strncmp(d_name, "event", 5))
+            continue;
+
+        u32 id = 0;
+
+        sscanf(d_name, "event%u", &id);
+
+        // Continue if the joypad already exists
+        if (joy_linux_evdev_HasJoypad(id))
             continue;
 
         // Calculate the length of the full name
-        size_t dirlen = strlen(dir->d_name);
+        size_t dirlen = strlen(d_name);
         size_t size = (len+dirlen+2);
 
         // Allocate a string of the length of the full name
         char *filename = malloc(size);
         if (filename == NULL) 
-            continue; // Past this point we have a pointer we need to clean up. Continuing should goto freecontinue.
+            continue;
 
         // Concat the paths
         sprintf(filename, "%s/%s", lin_SearchPath, dir->d_name);
+        
+        // Open the file and check if it's a joypad
+        FILE *file = fopen(filename, "rw"); // Past this point we have a pointer and file we need to clean up. Continuing should goto fail.
 
-        if (!joy_linux_evdev_IsGamepad(filename))
-            goto freecontinue;
+        if (!joy_linux_evdev_IsJoypad(file))
+            goto fail;
 
-        printf("%s\n", dir->d_name);
+        // Add joypad
+        joy_linux_evdev_AddJoypad(id, file);
 
-      freecontinue:
-        // Free the path
         free(filename);
+        continue;
+
+      fail:
+        free(filename);
+        fclose(file);
     }
     closedir(d);
 }
