@@ -57,6 +57,8 @@ void joy_linux_evdev_EnumerateDevices() {
             continue;
         if (!strcmp(dir->d_name, ".."))
             continue;
+        if (strncmp(dir->d_name, "event", 5))
+            continue;
 
         // Calculate the length of the full name
         size_t dirlen = strlen(dir->d_name);
