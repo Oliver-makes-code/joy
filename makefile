@@ -16,12 +16,10 @@ endif
 
 COMMON_FILES = $(call rwildcard,common,*.c)
 
-BUILD_COMMAND = 
-
 all: $(OUT_NAME)
 
 $(OUT_NAME):
-	$(CC) -shared $(COMMON_FILES) $(PLATFORM_FILES) -o $(OUT_NAME) -fPIC $(EXTRA_FLAGS)
+	$(CC) -shared $(COMMON_FILES) $(PLATFORM_FILES) -o $(OUT_NAME) -fPIC $(EXTRA_FLAGS) -g
 
 clean:
 	-$(RM) $(OUT_NAME)
