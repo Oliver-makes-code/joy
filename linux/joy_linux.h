@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../common/types.h"
+#include "../common/defines.h"
 
 CPP_GUARD_S
 
@@ -8,10 +8,21 @@ CPP_GUARD_S
 
 #include "../common/types.h"
 
-typedef struct joypadlist_t {
+typedef struct {
     u32 id;
     FILE *file;
-    struct joypadlist_t *next;
+} joypadfile_t;
+
+typedef OPTION(joypadfile_t) option_joypadfile_t;
+
+typedef struct {
+    usize length;
+    usize capacity;
+    option_joypadfile_t *data;
 } joypadlist_t;
+
+failable_usize joy_linux_joypadlist_AddJoypad(joypadlist_t *list, u32 id, FILE *file);
+bool joy_linux_joypadlist_HasJoypad(joypadlist_t *list, u32 id);
+failable_usize joy_linux_joypadlist_RemoveJoypad(joypadlist_t *list, u32 id);
 
 CPP_GUARD_E

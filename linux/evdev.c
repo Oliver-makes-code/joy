@@ -9,30 +9,15 @@
 #include "evdev.h"
 #include "joy_linux.h"
 
-joypadlist_t *joy_linux_evdev_joypadlist = 0;
+const error_t joy_linux_evdev_error_nodir = {
+    .err = FILE_NOEXISTS,
+    .msg = "/dev/input Doesn't Exist"
+};
 
-bool joy_linux_evdev_HasJoypad(u32 id) {
-    joypadlist_t *current = joy_linux_evdev_joypadlist;
+const char *joy_linux_evdev_search_path = "/dev/input";
+const int joy_linux_evdev_search_path_len = 10;
 
-    // Iterate through the list and check if the ID matches.
-    // It might make more sense to use a hashset for this.
-    // Currently it will cause an infinite loop if the list loops in on itself.
-    while (current) {
-        if (current->id == id)
-            return true;
-        current = current->next;
-    }
-    return false;
-}
-
-void joy_linux_evdev_AddJoypad(u32 id, FILE *file) {
-    // Create a new node and add it to the list
-    joypadlist_t *node = malloc(sizeof(joypadlist_t));
-    node->id = id;
-    node->file = file;
-    node->next = joy_linux_evdev_joypadlist;
-    joy_linux_evdev_joypadlist = node;
-}
+joypadlist_t joy_linux_evdev_joypadlist = {0, 0, 0};
 
 bool joy_linux_evdev_IsJoypad(FILE *file) {
     // Get the file descriptor
@@ -55,62 +40,95 @@ bool joy_linux_evdev_IsJoypad(FILE *file) {
     return true;
 }
 
-void joy_linux_evdev_EnumerateDevices() {
-    const char *lin_SearchPath = "/dev/input";
+bool joy_linux_evdev_IsValidDevice(const char *name) {
+    if (!strcmp(name, "."))
+        return false;
+    if (!strcmp(name, ".."))
+        return false;
+    if (strncmp(name, "event", 5))
+        return false;
+    return true;
+}
 
+u32 joy_linux_evdev_GetJoypadId(const char *name) {
+    u32 id = 0;
+
+    sscanf(name, "event%u", &id);
+
+    return id;
+}
+
+failable_FILE joy_linux_evdev_OpenEventFile(const char* name) {
+
+    // Calculate the length of the full name
+    size_t size = (joy_linux_evdev_search_path_len+strlen(name)+2);
+
+    // Allocate a string of the length of the full name
+    char *filename = malloc(size);
+    if (filename == NULL) 
+        return RESULT_ERR(failable_FILE, joy_error_malloc_failed);
+    
+    // Concat the paths
+    sprintf(filename, "%s/%s", joy_linux_evdev_search_path, name);
+    
+    // Open the file and check if it's a joypad
+    FILE *file = fopen(filename, "rw");
+
+    // Free the file name
+    free(filename);
+
+    return RESULT_OK(failable_FILE, file);
+}
+
+failable_usize joy_linux_evdev_EnumerateDevices() {
     DIR *d;
     struct dirent *dir;
-    d = opendir(lin_SearchPath);
-    size_t len = strlen(lin_SearchPath);
+    d = opendir(joy_linux_evdev_search_path);
+    size_t len = strlen(joy_linux_evdev_search_path);
 
     if (!d)
-        return;
+        return RESULT_ERR(failable_usize, joy_linux_evdev_error_nodir);
 
     while ((dir = readdir(d))) {
         char *d_name = dir->d_name;
         // Ignore parent and current dirs
-        if (!strcmp(d_name, "."))
-            continue;
-        if (!strcmp(d_name, ".."))
-            continue;
-        if (strncmp(d_name, "event", 5))
+        if (!joy_linux_evdev_IsValidDevice(d_name))
             continue;
 
-        u32 id = 0;
-
-        sscanf(d_name, "event%u", &id);
+        u32 id = joy_linux_evdev_GetJoypadId(d_name);
 
         // Continue if the joypad already exists
-        if (joy_linux_evdev_HasJoypad(id))
+        if (joy_linux_joypadlist_HasJoypad(&joy_linux_evdev_joypadlist, id))
             continue;
 
-        // Calculate the length of the full name
-        size_t dirlen = strlen(d_name);
-        size_t size = (len+dirlen+2);
+        failable_FILE file_result = joy_linux_evdev_OpenEventFile(d_name);
 
-        // Allocate a string of the length of the full name
-        char *filename = malloc(size);
-        if (filename == NULL) 
+        // Cascade error
+        if (!file_result.ok) {
+            closedir(d);
+            return RESULT_ERR(failable_usize, file_result.value.err);
+        }
+
+        FILE *file = file_result.value.ok;
+
+        if (!joy_linux_evdev_IsJoypad(file)) {
+            fclose(file);
             continue;
-
-        // Concat the paths
-        sprintf(filename, "%s/%s", lin_SearchPath, dir->d_name);
-        
-        // Open the file and check if it's a joypad
-        FILE *file = fopen(filename, "rw"); // Past this point we have a pointer and file we need to clean up. Continuing should goto fail.
-
-        if (!joy_linux_evdev_IsJoypad(file))
-            goto fail;
+        }
 
         // Add joypad
-        joy_linux_evdev_AddJoypad(id, file);
+        failable_usize result = joy_linux_joypadlist_AddJoypad(&joy_linux_evdev_joypadlist, id, file);
 
-        free(filename);
+        // Cascade error
+        if (!result.ok) {
+            fclose(file);
+            closedir(d);
+            return result;
+        }
+
         continue;
-
-      fail:
-        free(filename);
-        fclose(file);
     }
+
     closedir(d);
+    return RESULT_OK(failable_usize, 0);
 }

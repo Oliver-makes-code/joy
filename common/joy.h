@@ -8,12 +8,13 @@ CPP_GUARD_S
 #include <stddef.h>
 
 #include "types.h"
+#include "errors.h"
 
 // Initializes the library.
-PUB failable_t CALL joy_Init();
+PUB failable_usize CALL joy_Init();
 
 // Pumps events.
-PUB failable_t CALL joy_PumpEvents();
+PUB failable_usize CALL joy_PumpEvents();
 
 // Gets the info of a joypad.
 // Returns ok=false if not connected.

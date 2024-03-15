@@ -7,6 +7,7 @@ bool joy_linux_jsdev_IsGamepad(const char *path) {
     return false;
 }
 
-void joy_linux_jsdev_EnumerateDevices() {
+failable_usize joy_linux_jsdev_EnumerateDevices() {
     // Not implemented.
+    return RESULT_OK(failable_usize, 0);
 }

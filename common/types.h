@@ -7,6 +7,9 @@ CPP_GUARD_S
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <stdio.h>
+
+#include "errors.h"
 
 typedef double f64;
 typedef float f32;
@@ -32,13 +35,16 @@ typedef int8_t i8;
 
 #define STR_RESULT(TOk) RESULT(TOk, char *)
 
+#define FAILABLE(TOk) RESULT(TOk, error_t)
+
 // Holds a failable result.
-// ok is always 0.
-typedef STR_RESULT(usize) failable_t;
+typedef FAILABLE(usize) failable_usize;
+typedef FAILABLE(FILE *) failable_FILE;
 
 typedef OPTION(f32) option_f32;
 typedef OPTION(u16) option_u16;
 typedef OPTION(bool) option_bool;
+typedef OPTION(usize) option_usize;
 
 // Holds info about a joypad.
 // TODO: sensors? rumble?

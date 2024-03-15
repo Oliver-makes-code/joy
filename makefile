@@ -25,3 +25,5 @@ $(OUT_NAME):
 
 clean:
 	-$(RM) $(OUT_NAME)
+
+.PHONY: $(OUT_NAME)
